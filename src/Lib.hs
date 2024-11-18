@@ -66,7 +66,7 @@ naarDoublesOpl :: Signaal
 naarDoublesOpl params n f v = zipWith (curry (\(t, [x, _]) -> (fromIntegral t * h params, x))) [0 .. n] (take n (iterate f v))
 
 teken :: String -> Signaal -> Params -> (Params -> (Vct -> Nm) -> Vct -> Int -> Nm) -> Double -> IO ()
-teken naam signaal params f periode = toFile def ("grafieken/" ++ naam ++ ".png") $ do
+teken naam signaal params f periode = toFile def ("grafieken/" ++ naam ++ ".svg") $ do
   let signaalF = signaal params (steps params) (stap params (f params)) (initieel params)
   layout_title .= naam ++ "(mu: " ++ (show . μ) params ++ ", periode: " ++ show periode ++ ")"
   setColors [opaque blue]
