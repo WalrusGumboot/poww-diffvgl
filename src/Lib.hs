@@ -13,6 +13,7 @@ module Lib
     naarDoublesOpl,
     teken,
     berekenPeriode,
+    tekenMetMus,
   )
 where
 
@@ -72,14 +73,13 @@ teken naam signaal params f periode = toFile def ("grafieken/" ++ naam ++ ".svg"
   setColors [opaque blue]
   plot (line "signaalF" [signaalF])
 
-berekenPeriode :: Params -> (Params -> ((Vct -> Nm) -> Vct -> Int -> Nm)) -> IO Double
-berekenPeriode params f = do
-  let signaalF = naarDoublesOpl params (steps params) (stap params (f params)) (initieel params)
-  let matches = minima params (drop (discard params) $ map snd signaalF) 1.0
+berekenPeriode :: Params -> [(Double, Double)] -> Double
+berekenPeriode params signaal = do
+  let matches = minima params (drop (discard params) $ map snd signaal) 1.0
   let accuracy = [fromIntegral a / fromIntegral (head matches) | a <- matches] :: [Double]
-  print $ take 4 accuracy
+  -- print $ take 4 accuracy
   -- we nemen aan dat onze periode accuraat is, dit blijkt empirisch ook zo te zijn
-  return $ fromIntegral (head matches) * h params
+  fromIntegral (head matches) * h params
 
 afwNaShift :: [Double] -> Int -> Double
 afwNaShift xs s = sum $ zipWith (\a b -> (a - b) ** 2) xs (drop s xs)
@@ -89,3 +89,10 @@ filterRange limit = nubBy (\a b -> b - a <= limit)
 
 minima :: Params -> [Double] -> Double -> [Int]
 minima params xs eps = filterRange 50 $ findIndices (< eps) (map (afwNaShift xs) [1 .. (steps params - discard params)])
+
+tekenMetMus :: [Double] -> String -> Signaal -> Params -> (Params -> (Vct -> Nm) -> Vct -> Int -> Nm) -> IO ()
+tekenMetMus mus naam signaal params f = toFile def ("grafieken/" ++ naam ++ ".svg") $ do
+  let signaalFs = map (\μV -> let updParams = params {μ = μV} in signaal updParams (steps updParams) (stap updParams (f updParams)) (initieel updParams)) mus
+  layout_title .= naam
+  setColors [opaque blue, opaque green, opaque red]
+  mapM_ (\i -> let lineLabel = "mu = " ++ show (mus !! i) ++ ", periode = " ++ show (berekenPeriode params (signaalFs !! i)) in plot (line lineLabel [signaalFs !! i])) [0 .. length mus - 1]
